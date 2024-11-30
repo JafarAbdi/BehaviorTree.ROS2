@@ -25,6 +25,7 @@ generate_parameter_library(
     src/bt_executor_parameters.yaml)
 
 add_library(${PROJECT_NAME}
+    SHARED
     src/bt_ros2.cpp
     src/bt_utils.cpp
     src/tree_execution_server.cpp )
