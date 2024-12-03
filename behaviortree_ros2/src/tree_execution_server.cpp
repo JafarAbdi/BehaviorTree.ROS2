@@ -309,4 +309,9 @@ BT::BehaviorTreeFactory& TreeExecutionServer::factory()
   return p_->factory;
 }
 
+void TreeExecutionServer::reloadBehaviorTrees()
+{
+  p_->factory.clearRegisteredBehaviorTrees();
+  RegisterBehaviorTrees(p_->params, p_->factory, node_);
+}
 }  // namespace BT

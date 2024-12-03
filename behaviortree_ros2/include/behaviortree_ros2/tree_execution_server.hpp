@@ -153,6 +153,7 @@ protected:
    * __derived__ class of TreeExecutionServer.
    */
   void executeRegistration();
+  void reloadBehaviorTrees();
 
 private:
   struct Pimpl;
