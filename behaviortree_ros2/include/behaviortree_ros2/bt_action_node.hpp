@@ -108,7 +108,11 @@ public:
    */
   static PortsList providedBasicPorts(PortsList addition)
   {
-    PortsList basic = { InputPort<std::string>("action_name", "", "Action server name") };
+    PortsList basic = { InputPort<std::string>("action_name", "", "Action server name"),
+                        InputPort<int>("server_timeout", 1000,
+                                       "Timeout for the action "
+                                       "server to execute the goal "
+                                       "in ms") };
     basic.insert(addition.begin(), addition.end());
     return basic;
   }
@@ -219,8 +223,8 @@ protected:
   std::shared_ptr<ActionClientInstance> client_instance_;
   std::string action_name_;
   bool action_name_should_be_checked_ = false;
-  const std::chrono::milliseconds server_timeout_;
-  const std::chrono::milliseconds wait_for_server_timeout_;
+  std::chrono::milliseconds server_timeout_;
+  std::chrono::milliseconds wait_for_server_timeout_;
   std::string action_client_key_;
 
 private:
@@ -280,6 +284,26 @@ inline RosActionNode<T>::RosActionNode(const std::string& instance_name,
       createClient(bb_service_name);
     }
   }
+
+  auto serverTimeoutPortIt = config().input_ports.find("server_timeout");
+  if(serverTimeoutPortIt != config().input_ports.end())
+  {
+    const auto& server_timeout = serverTimeoutPortIt->second;
+
+    if(isBlackboardPointer(server_timeout))
+    {
+      throw RuntimeError("server_timeout is blackboard pointer (Specified as '" +
+                         server_timeout +
+                         "'). Only static strings are "
+                         "supported.");
+    }
+    if(!server_timeout.empty())
+    {
+      // "hard-coded" name in the server_timeout. Use it.
+      server_timeout_ = std::chrono::milliseconds(std::stoi(server_timeout));
+    }
+  }
+
   // no port value or it is empty. Use the default value
   if(!client_instance_ && !params.default_port_value.empty())
   {
