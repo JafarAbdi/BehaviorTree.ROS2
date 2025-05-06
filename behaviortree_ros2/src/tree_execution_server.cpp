@@ -173,6 +173,9 @@ void TreeExecutionServer::execute(
   {
     executeRegistration();
   }
+  // load trees (XML) from multiple directories
+  p_->factory.clearRegisteredBehaviorTrees();
+  RegisterBehaviorTrees(p_->params, p_->factory, node_);
 
   // Loop until something happens with ROS or the node completes
   try

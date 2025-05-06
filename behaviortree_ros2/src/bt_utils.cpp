@@ -49,6 +49,12 @@ btcpp_ros2_interfaces::msg::NodeStatus ConvertNodeStatus(BT::NodeStatus& status)
 
 std::string GetDirectoryPath(const std::string& parameter_value)
 {
+  if(!parameter_value.empty() && parameter_value[0] == '/')
+  {
+    RCLCPP_INFO(kLogger, "Using absolute path for Plugins/BehaviorTrees: %s",
+                parameter_value.c_str());
+    return parameter_value;
+  }
   std::string package_name, subfolder;
   auto pos = parameter_value.find_first_of("/");
   if(pos == parameter_value.size())
