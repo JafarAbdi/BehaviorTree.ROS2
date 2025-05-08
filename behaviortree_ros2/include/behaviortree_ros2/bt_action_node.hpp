@@ -400,6 +400,16 @@ inline NodeStatus RosActionNode<T>::tick()
     return status;
   };
 
+  setPostTickFunction([this](TreeNode& /*tree_node*/, NodeStatus node_status) {
+    if(node_status == NodeStatus::FAILURE)
+    {
+      RCLCPP_ERROR(logger(), "RosActionNode: postTickFunction called");
+      halt();
+      setPostTickFunction({});
+    }
+    return node_status;
+  });
+
   // first step to be done only at the beginning of the Action
   if(status() == BT::NodeStatus::IDLE)
   {
