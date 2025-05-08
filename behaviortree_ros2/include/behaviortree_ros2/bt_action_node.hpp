@@ -97,7 +97,13 @@ public:
   explicit RosActionNode(const std::string& instance_name, const BT::NodeConfig& conf,
                          const RosNodeParams& params);
 
-  virtual ~RosActionNode() = default;
+  ~RosActionNode() override
+  {
+    if(goal_handle_ || future_goal_handle_.valid())
+    {
+      cancelGoal();
+    }
+  }
 
   /**
    * @brief Any subclass of RosActionNode that has ports must implement a
@@ -578,23 +584,40 @@ inline void RosActionNode<T>::cancelGoal()
     }
   }
 
-  auto& action_client = client_instance_->action_client;
-
-  auto future_result = action_client->async_get_result(goal_handle_);
-  auto future_cancel = action_client->async_cancel_goal(goal_handle_);
-
-  constexpr auto SUCCESS = rclcpp::FutureReturnCode::SUCCESS;
-
-  if(executor.spin_until_future_complete(future_cancel, server_timeout_) != SUCCESS)
+  if(goal_handle_->get_status() == rclcpp_action::GoalStatus::STATUS_SUCCEEDED)
   {
-    RCLCPP_ERROR(logger(), "Failed to cancel action server for [%s]",
-                 action_name_.c_str());
+    return;
   }
 
-  if(executor.spin_until_future_complete(future_result, server_timeout_) != SUCCESS)
+  try
   {
-    RCLCPP_ERROR(logger(), "Failed to get result call failed :( for [%s]",
-                 action_name_.c_str());
+    auto& action_client = client_instance_->action_client;
+
+    auto future_result = action_client->async_get_result(goal_handle_);
+    auto future_cancel = action_client->async_cancel_goal(goal_handle_);
+
+    constexpr auto SUCCESS = rclcpp::FutureReturnCode::SUCCESS;
+
+    if(executor.spin_until_future_complete(future_cancel, server_timeout_) != SUCCESS)
+    {
+      RCLCPP_ERROR_STREAM(logger(), "Failed to cancel action server for [%s]"
+                                        << action_name_ << ". Goal handle status: "
+                                        << static_cast<int>(goal_handle_->get_status()));
+    }
+
+    if(executor.spin_until_future_complete(future_result, server_timeout_) != SUCCESS)
+    {
+      RCLCPP_ERROR_STREAM(logger(), "Failed to get result call failed :( for [%s]"
+                                        << action_name_ << ". Goal handle status: "
+                                        << static_cast<int>(goal_handle_->get_status()));
+    }
+  }
+  catch(const rclcpp_action::exceptions::UnknownGoalHandleError& e)
+  {
+    RCLCPP_ERROR_STREAM(logger(), "Failed to cancel goal on action server "
+                                      << action_name_ << ": " << e.what()
+                                      << ". Goal handle status: "
+                                      << static_cast<int>(goal_handle_->get_status()));
   }
 }
 
